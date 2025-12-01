@@ -12,7 +12,6 @@ import TooltipButton from '../TooltipButton';
 import type { TooltipButtonData } from '../TooltipButton/TooltipButton';
 import './AppLayout.less';
 import { AuthContext } from '../../../contexts/AuthContext';
-import QuotaStatusBar from '../QuotaStatusBar/QuotaStatusBar';
 import { QuotaProvider } from '../../../contexts/QuotaContext';
 
 const { Content } = Layout;
@@ -91,7 +90,7 @@ const AppLayout: FC<IAppLayoutProps> = ({ ...props }) => {
               onClick={() => setSideLeftShow(true)}
             />
           </div>
-          <QuotaStatusBar />
+
           {TooltipButtonData && (
             <div className="right-TooltipButton">
               <TooltipButton

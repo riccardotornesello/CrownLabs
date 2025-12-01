@@ -16,6 +16,8 @@ import Box from '../../common/Box';
 import ModalCreateTemplate from '../ModalCreateTemplate';
 import type { Template } from '../ModalCreateTemplate/ModalCreateTemplate';
 import { TemplatesTableLogic } from '../Templates/TemplatesTableLogic';
+import QuotaDisplay from '../QuotaDisplay';
+import { useQuotaContext } from '../../../contexts/QuotaContext.types';
 
 export interface IWorkspaceContainerProps {
   tenantNamespace: string;
@@ -31,6 +33,7 @@ export interface IWorkspaceContainerProps {
 
 const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
   const [showUserListModal, setShowUserListModal] = useState<boolean>(false);
+  const { consumedQuota, workspaceQuota } = useQuotaContext();
 
   const {
     tenantNamespace,
@@ -143,10 +146,15 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         header={{
           size: 'large',
           center: (
-            <div className="h-full flex justify-center items-center px-5">
+            <div className="h-full flex flex-col justify-center items-center px-5">
               <p className="md:text-4xl text-2xl text-center mb-0">
                 <b>{workspace.prettyName}</b>
               </p>
+
+              <QuotaDisplay
+                consumedQuota={consumedQuota}
+                workspaceQuota={workspaceQuota}
+              />
             </div>
           ),
           left: workspace.role === WorkspaceRole.manager && (

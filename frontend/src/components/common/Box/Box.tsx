@@ -12,7 +12,7 @@ export type BoxHeader = {
   left?: React.ReactNode;
   right?: React.ReactNode;
   center?: React.ReactNode;
-  size: BoxHeaderSize;
+  size?: BoxHeaderSize;
 };
 
 const Box: FC<IBoxProps> = ({ ...props }) => {
@@ -22,7 +22,7 @@ const Box: FC<IBoxProps> = ({ ...props }) => {
   const classPerSize = {
     small: 'h-14',
     middle: 'h-20',
-    large: 'h-24',
+    large: 'h-34',
   };
 
   return (

@@ -12,12 +12,12 @@ import './QuotaDisplay.less';
 const { Text } = Typography;
 
 export interface IQuotaDisplayProps {
-  consumedQuota: {
+  consumedQuota?: {
     cpu?: string | number;
     memory?: string;
     instances?: number;
   } | null;
-  workspaceQuota: {
+  workspaceQuota?: {
     cpu?: string | number;
     memory?: string;
     instances?: number;
@@ -28,8 +28,6 @@ const QuotaDisplay: FC<IQuotaDisplayProps> = ({
   consumedQuota,
   workspaceQuota,
 }) => {
-  const quota = workspaceQuota;
-
   const currentUsage = useMemo(() => {
     let usedCpu = 0;
     let usedMemory = 0;
@@ -51,16 +49,20 @@ const QuotaDisplay: FC<IQuotaDisplayProps> = ({
     };
   }, [consumedQuota]);
 
-  const quotaLimits = {
-    cpu: quota?.cpu ? parseInt(String(quota.cpu)) : 8,
-    memory: quota?.memory ? parseMemoryToGB(quota.memory) : 16,
-    instances: quota?.instances || 8,
-  };
+  const quotaLimits = useMemo(() => ({
+    cpu: workspaceQuota?.cpu ? parseInt(String(workspaceQuota.cpu)) : 8,
+    memory: workspaceQuota?.memory ? parseMemoryToGB(workspaceQuota.memory) : 16,
+    instances: workspaceQuota?.instances || 8,
+  }), [workspaceQuota]);
+
+  if (!consumedQuota || !workspaceQuota) {
+    return null;
+  }
 
   return (
     <div
       className="quota-display-container"
-      style={{ height: '40px', overflow: 'hidden' }}
+      style={{ height: '40px', width: '100%', overflow: 'hidden' }}
     >
       <Row gutter={[16, 0]} style={{ height: '100%' }}>
         <Col xs={24} sm={8} style={{ height: '100%' }}>
