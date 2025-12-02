@@ -24,8 +24,8 @@ export interface ITemplatesTableProps {
   templates: Array<Template>;
   role: WorkspaceRole;
   availableQuota?: {
-    cpu?: string | number;
-    memory?: string;
+    cpu?: number;
+    memory?: number;
     instances?: number;
   };
   refreshQuota?: () => void; // Add refresh function

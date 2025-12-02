@@ -21,32 +21,37 @@ import QuotaDisplay from '../QuotaDisplay';
 export interface IWorkspaceContainerProps {
   tenantNamespace: string;
   workspace: Workspace;
-  availableGlobalQuota?: {
-    cpu?: string | number;
-    memory?: string;
-    instances?: number;
-  };
-  refreshQuota?: () => void; // Add refresh function
   isPersonalWorkspace?: boolean;
 }
 
+// TODO: move to specific file
+export type Quota = {
+  cpu: number;
+  memory: number;
+  instances: number;
+};
+
+export const defaultQuota: Quota = {
+  cpu: 0,
+  memory: 0,
+  instances: 0,
+};
+
 const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({
-    tenantNamespace,
-    workspace,
-    refreshQuota,
-    isPersonalWorkspace: isPersonal,
-    availableGlobalQuota,
-  }) => {
+  tenantNamespace,
+  workspace,
+  isPersonalWorkspace: isPersonal,
+}) => {
   const [showUserListModal, setShowUserListModal] = useState<boolean>(false);
 
   // Calculate resources used in each workspace
-  const { data: ownedInstances } = useOwnedInstancesQuery({ variables: { tenantNamespace: "tenant-s302514" } });
+  const { data: ownedInstances, refetch: refetchOwnedInstances } = useOwnedInstancesQuery({ variables: { tenantNamespace: "tenant-s302514" } });
   const consumedQuota = useMemo(() => {
     if (!ownedInstances) return {}
 
     const instances = ownedInstances?.instanceList?.instances || []
 
-    const workspaceUsedResources: { [workspace: string]: { cpu: number, memory: number, instances: number } } = {}
+    const workspaceUsedResources: { [workspace: string]: Quota } = {}
 
     instances.forEach(instance => {
       const workspaceName = instance?.metadata?.labels?.crownlabsPolitoItWorkspace;
@@ -69,18 +74,31 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({
     return workspaceUsedResources;
   }, [ownedInstances])
 
-  // Get workspace quotas
-  const { data: workspaceQuotas } = useWorkspaceQuotasQuery()
-  const availableQuota: { [workspace: string]: { cpu: number, memory: number, instances: number } } = useMemo(() => workspaceQuotas?.workspaces?.items?.reduce((map, workspace) => ({
+  // Get workspace quota
+  const { data: workspaceQuotas, refetch: refetchWorkspaceQuotas } = useWorkspaceQuotasQuery()
+  const totalQuota: { [workspace: string]: Quota } = useMemo(() => workspaceQuotas?.workspaces?.items?.reduce((map, workspace) => ({
     ...map,
     [workspace?.metadata?.name || ""]: {
-      cpu: workspace?.spec?.quota?.cpu || 0,
+      cpu: parseFloat(workspace?.spec?.quota?.cpu) || 0,
       memory: convertToGB(workspace?.spec?.quota?.memory || 0),
       instances: workspace?.spec?.quota?.instances || 0,
     },
   }), {}) || {}, [workspaceQuotas]);
 
+  // Calculate quota for this specific workspace
+  const workspaceTotalQuota = useMemo(() => totalQuota[workspace.name] || defaultQuota, [totalQuota, workspace.name]);
+  const workspaceConsumedQuota = useMemo(() => consumedQuota[workspace.name] || defaultQuota, [consumedQuota, workspace.name]);
+  const workspaceAvailableQuota = useMemo(() => ({
+    cpu: workspaceTotalQuota?.cpu - workspaceConsumedQuota?.cpu || 0,
+    memory: workspaceTotalQuota?.memory - workspaceConsumedQuota?.memory || 0,
+    instances: workspaceTotalQuota?.instances - workspaceConsumedQuota?.instances || 0,
+  }), [workspaceTotalQuota, workspaceConsumedQuota]);
 
+  // Refresh the quota data
+  const refreshQuota = () => {
+    refetchOwnedInstances();
+    refetchWorkspaceQuotas();
+  }
 
   const { apolloErrorCatcher } = useContext(ErrorContext);
   const [createTemplateMutation, { loading }] = useCreateTemplateMutation({
@@ -157,7 +175,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({
     })
       .then(result => {
         // Refresh quota after template creation
-        refreshQuota?.();
+        refreshQuota();
         return result;
       })
       .catch(error => {
@@ -192,8 +210,8 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({
               </p>
 
               <QuotaDisplay
-                consumedQuota={consumedQuota[workspace.name]}
-                workspaceQuota={availableQuota[workspace.name]}
+                consumedQuota={workspaceConsumedQuota}
+                workspaceQuota={workspaceTotalQuota}
               />
             </div>
           ),
@@ -241,7 +259,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({
             role={workspace.role}
             workspaceNamespace={workspace.namespace}
             workspaceName={workspace.name}
-            availableQuota={availableGlobalQuota}
+            availableQuota={workspaceAvailableQuota}
             refreshQuota={refreshQuota}
             isPersonal={isPersonal}
           />

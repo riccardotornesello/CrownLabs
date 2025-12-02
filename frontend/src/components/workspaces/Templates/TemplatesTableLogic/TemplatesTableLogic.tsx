@@ -37,8 +37,8 @@ export interface ITemplateTableLogicProps {
   workspaceName: string;
   role: WorkspaceRole;
   availableQuota?: {
-    cpu?: string | number;
-    memory?: string;
+    cpu?: number;
+    memory?: number;
     instances?: number;
   };
   refreshQuota?: () => void; // Add refresh function

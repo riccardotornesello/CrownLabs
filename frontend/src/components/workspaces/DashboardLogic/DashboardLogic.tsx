@@ -279,13 +279,6 @@ const DashboardLogic: FC = () => {
         selected: loadCandidates,
         select: selectLoadCandidates,
       }}
-      globalQuota={{
-        consumedQuota: quotaCalculations.consumedQuota,
-        workspaceQuota: quotaCalculations.workspaceQuota,
-        availableQuota: quotaCalculations.availableQuota,
-        showQuotaDisplay: true,
-        refreshQuota,
-      }}
     />
   ) : (
     <div className="h-full w-full flex justify-center items-center">

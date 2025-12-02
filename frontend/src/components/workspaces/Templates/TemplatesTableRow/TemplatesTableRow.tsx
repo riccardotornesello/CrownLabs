@@ -36,8 +36,8 @@ export interface ITemplatesTableRowProps {
   totalInstances: number;
   tenantNamespace: string;
   availableQuota?: {
-    cpu?: string | number;
-    memory?: string;
+    cpu?: number;
+    memory?: number;
     instances?: number;
   };
   refreshQuota?: () => void;
@@ -73,8 +73,8 @@ const convertMemory = (s: string): string =>
 const canCreateInstance = (
   template: Template,
   availableQuota?: {
-    cpu?: string | number;
-    memory?: string;
+    cpu?: number;
+    memory?: number;
     instances?: number;
   },
 ): boolean => {
@@ -82,15 +82,10 @@ const canCreateInstance = (
   if (!availableQuota) return true;
 
   const templateCpu = template.resources?.cpu || 0;
-  const availableCpu =
-    availableQuota.cpu !== undefined
-      ? typeof availableQuota.cpu === 'string'
-        ? parseFloat(availableQuota.cpu)
-        : availableQuota.cpu
-      : 0;
+  const availableCpu = availableQuota?.cpu || 0;
 
   const templateMemory = parseMemoryToGB(template.resources?.memory || '0');
-  const availableMemory = parseMemoryToGB(availableQuota.memory || '0');
+  const availableMemory = availableQuota?.memory || 0;
 
   const availableInstances =
     availableQuota.instances !== undefined ? availableQuota.instances : 0;
