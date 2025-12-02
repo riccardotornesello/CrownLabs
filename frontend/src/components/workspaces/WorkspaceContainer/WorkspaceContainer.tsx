@@ -144,7 +144,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
       />
       <Box
         header={{
-          size: 'large',
+          className: "h-50 md:h-34",
           center: (
             <div className="h-full flex flex-col justify-center items-center px-5">
               <p className="md:text-4xl text-2xl text-center mb-0">

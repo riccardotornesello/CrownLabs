@@ -13,11 +13,12 @@ export type BoxHeader = {
   right?: React.ReactNode;
   center?: React.ReactNode;
   size?: BoxHeaderSize;
+  className?: string;
 };
 
 const Box: FC<IBoxProps> = ({ ...props }) => {
   const { header, children, footer } = props;
-  const { center, left, right, size } = header || {};
+  const { center, left, right, size, className } = header || {};
 
   const classPerSize = {
     small: 'h-14',
@@ -38,7 +39,7 @@ const Box: FC<IBoxProps> = ({ ...props }) => {
             <div
               className={`${
                 size ? classPerSize[size] : ''
-              } flex justify-center items-center box-header`}
+              } ${className || ''} flex justify-center items-center box-header`}
             >
               <div className="flex-none h-full">{left}</div>
               <div className="flex-grow h-full">{center}</div>
