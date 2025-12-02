@@ -2,27 +2,26 @@ import { PlusOutlined, UserSwitchOutlined } from '@ant-design/icons';
 import { Badge, Modal, Tooltip } from 'antd';
 import { Button } from 'antd';
 import type { FC } from 'react';
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import type {
   EnvironmentListListItemInput,
   SharedVolumeMountsListItemInput,
 } from '../../../generated-types';
-import { useCreateTemplateMutation } from '../../../generated-types';
+import { useCreateTemplateMutation, useOwnedInstancesQuery, useWorkspaceQuotasQuery } from '../../../generated-types';
 import type { Workspace } from '../../../utils';
-import { WorkspaceRole } from '../../../utils';
+import { convertToGB, WorkspaceRole } from '../../../utils';
 import UserListLogic from '../../accountPage/UserListLogic/UserListLogic';
 import Box from '../../common/Box';
 import ModalCreateTemplate from '../ModalCreateTemplate';
 import type { Template } from '../ModalCreateTemplate/ModalCreateTemplate';
 import { TemplatesTableLogic } from '../Templates/TemplatesTableLogic';
 import QuotaDisplay from '../QuotaDisplay';
-import { useQuotaContext } from '../../../contexts/QuotaContext.types';
 
 export interface IWorkspaceContainerProps {
   tenantNamespace: string;
   workspace: Workspace;
-  availableQuota?: {
+  availableGlobalQuota?: {
     cpu?: string | number;
     memory?: string;
     instances?: number;
@@ -31,16 +30,57 @@ export interface IWorkspaceContainerProps {
   isPersonalWorkspace?: boolean;
 }
 
-const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
-  const [showUserListModal, setShowUserListModal] = useState<boolean>(false);
-  const { consumedQuota, workspaceQuota } = useQuotaContext();
-
-  const {
+const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({
     tenantNamespace,
     workspace,
     refreshQuota,
     isPersonalWorkspace: isPersonal,
-  } = props;
+    availableGlobalQuota,
+  }) => {
+  const [showUserListModal, setShowUserListModal] = useState<boolean>(false);
+
+  // Calculate resources used in each workspace
+  const { data: ownedInstances } = useOwnedInstancesQuery({ variables: { tenantNamespace: "tenant-s302514" } });
+  const consumedQuota = useMemo(() => {
+    if (!ownedInstances) return {}
+
+    const instances = ownedInstances?.instanceList?.instances || []
+
+    const workspaceUsedResources: { [workspace: string]: { cpu: number, memory: number, instances: number } } = {}
+
+    instances.forEach(instance => {
+      const workspaceName = instance?.metadata?.labels?.crownlabsPolitoItWorkspace;
+      if (!workspaceName) return;
+
+      const environments = instance?.spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper?.itPolitoCrownlabsV1alpha2Template?.spec?.environmentList || []
+      if (environments.length === 0) return;
+
+      if (!(workspaceName in workspaceUsedResources)) {
+        workspaceUsedResources[workspaceName] = { cpu: 0, memory: 0, instances: 0 };
+      }
+
+      workspaceUsedResources[workspaceName].instances += 1;
+      environments.forEach(environment => {
+        workspaceUsedResources[workspaceName].cpu += environment?.resources?.cpu || 0;
+        workspaceUsedResources[workspaceName].memory += convertToGB(environment?.resources?.memory || 0);
+      })
+    })
+
+    return workspaceUsedResources;
+  }, [ownedInstances])
+
+  // Get workspace quotas
+  const { data: workspaceQuotas } = useWorkspaceQuotasQuery()
+  const availableQuota: { [workspace: string]: { cpu: number, memory: number, instances: number } } = useMemo(() => workspaceQuotas?.workspaces?.items?.reduce((map, workspace) => ({
+    ...map,
+    [workspace?.metadata?.name || ""]: {
+      cpu: workspace?.spec?.quota?.cpu || 0,
+      memory: convertToGB(workspace?.spec?.quota?.memory || 0),
+      instances: workspace?.spec?.quota?.instances || 0,
+    },
+  }), {}) || {}, [workspaceQuotas]);
+
+
 
   const { apolloErrorCatcher } = useContext(ErrorContext);
   const [createTemplateMutation, { loading }] = useCreateTemplateMutation({
@@ -152,8 +192,8 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
               </p>
 
               <QuotaDisplay
-                consumedQuota={consumedQuota}
-                workspaceQuota={workspaceQuota}
+                consumedQuota={consumedQuota[workspace.name]}
+                workspaceQuota={availableQuota[workspace.name]}
               />
             </div>
           ),
@@ -201,7 +241,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
             role={workspace.role}
             workspaceNamespace={workspace.namespace}
             workspaceName={workspace.name}
-            availableQuota={props.availableQuota}
+            availableQuota={availableGlobalQuota}
             refreshQuota={refreshQuota}
             isPersonal={isPersonal}
           />

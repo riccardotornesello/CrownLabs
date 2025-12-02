@@ -104,7 +104,7 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
           <WorkspaceContainer
             tenantNamespace={tenantNamespace}
             workspace={workspaces[selectedWsId]}
-            availableQuota={globalQuota?.availableQuota}
+            availableGlobalQuota={globalQuota?.availableQuota}
             refreshQuota={globalQuota?.refreshQuota}
             isPersonalWorkspace={false}
           />
@@ -118,7 +118,7 @@ const Dashboard: FC<IDashboardProps> = ({ ...props }) => {
               namespace: tenantNamespace,
               waitingTenants: undefined,
             }}
-            availableQuota={globalQuota?.availableQuota}
+            availableGlobalQuota={globalQuota?.availableQuota}
             refreshQuota={globalQuota?.refreshQuota}
             isPersonalWorkspace={true}
           />

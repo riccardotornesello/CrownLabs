@@ -5,21 +5,19 @@ import {
   DatabaseOutlined,
 } from '@ant-design/icons';
 import type { FC } from 'react';
-import { useMemo } from 'react';
-import { parseMemoryToGB } from './useQuotaCalculation';
 import './QuotaDisplay.less';
 
 const { Text } = Typography;
 
 export interface IQuotaDisplayProps {
   consumedQuota?: {
-    cpu?: string | number;
-    memory?: string;
+    cpu?: number;
+    memory?: number;
     instances?: number;
   } | null;
   workspaceQuota?: {
-    cpu?: string | number;
-    memory?: string;
+    cpu?: number;
+    memory?: number;
     instances?: number;
   };
 }
@@ -28,37 +26,6 @@ const QuotaDisplay: FC<IQuotaDisplayProps> = ({
   consumedQuota,
   workspaceQuota,
 }) => {
-  const currentUsage = useMemo(() => {
-    let usedCpu = 0;
-    let usedMemory = 0;
-    let runningInstances = 0;
-
-    if (consumedQuota) {
-      usedCpu =
-        typeof consumedQuota.cpu === 'string'
-          ? parseFloat(consumedQuota.cpu) || 0
-          : consumedQuota.cpu || 0;
-      usedMemory = parseMemoryToGB(consumedQuota.memory || '0');
-      runningInstances = consumedQuota.instances || 0;
-    }
-
-    return {
-      cpu: usedCpu,
-      memory: usedMemory,
-      instances: runningInstances,
-    };
-  }, [consumedQuota]);
-
-  const quotaLimits = useMemo(() => ({
-    cpu: workspaceQuota?.cpu ? parseInt(String(workspaceQuota.cpu)) : 8,
-    memory: workspaceQuota?.memory ? parseMemoryToGB(workspaceQuota.memory) : 16,
-    instances: workspaceQuota?.instances || 8,
-  }), [workspaceQuota]);
-
-  if (!consumedQuota || !workspaceQuota) {
-    return null;
-  }
-
   return (
     <div
       className="quota-display-container h-30 md:h-10"
@@ -73,7 +40,7 @@ const QuotaDisplay: FC<IQuotaDisplayProps> = ({
             <Space size="small">
               <DesktopOutlined className="primary-color-fg" />
               <Text strong>
-                {currentUsage.cpu}/{quotaLimits.cpu}
+                {consumedQuota?.cpu || 0}/{workspaceQuota?.cpu || 0}
               </Text>
               <Text type="secondary" style={{ fontSize: '12px' }}>
                 CPU cores
@@ -90,7 +57,7 @@ const QuotaDisplay: FC<IQuotaDisplayProps> = ({
             <Space size="small">
               <DatabaseOutlined className="success-color-fg" />
               <Text strong>
-                {currentUsage.memory.toFixed(1)}/{quotaLimits.memory.toFixed(1)}
+                {(consumedQuota?.memory || 0).toFixed(1)}/{(workspaceQuota?.memory || 0).toFixed(1)}
               </Text>
               <Text type="secondary" style={{ fontSize: '12px' }}>
                 RAM GB
@@ -107,7 +74,7 @@ const QuotaDisplay: FC<IQuotaDisplayProps> = ({
             <Space size="small">
               <CloudOutlined className="warning-color-fg" />
               <Text strong>
-                {currentUsage.instances}/{quotaLimits.instances}
+                {consumedQuota?.instances || 0}/{workspaceQuota?.instances || 0}
               </Text>
               <Text type="secondary" style={{ fontSize: '12px' }}>
                 Instances
