@@ -204,51 +204,59 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({
         header={{
           className: "h-50 md:h-34",
           center: (
-            <div className="h-full flex flex-col justify-center items-center px-5">
-              <p className="md:text-4xl text-2xl text-center mb-0">
-                <b>{workspace.prettyName}</b>
-              </p>
+            <div className="h-full flex justify-center items-center flex-col">
+              <div className="w-full flex-grow flex justify-center items-center">
+                {workspace.role === WorkspaceRole.manager && (
+                  <div className="h-full flex-none flex justify-center items-center pl-10">
+                    <Tooltip title="Manage users">
+                      <Button
+                        type="primary"
+                        shape="circle"
+                        size="large"
+                        icon={<UserSwitchOutlined />}
+                        onClick={() => setShowUserListModal(true)}
+                      >
+                        {workspace.waitingTenants && (
+                          <Badge
+                            count={workspace.waitingTenants}
+                            color="yellow"
+                            className="absolute -top-2.5 -right-2.5"
+                          />
+                        )}
+                      </Button>
+                    </Tooltip>
+                  </div>
+                )}
 
-              <QuotaDisplay
-                consumedQuota={workspaceConsumedQuota}
-                workspaceQuota={workspaceTotalQuota}
-              />
-            </div>
-          ),
-          left: workspace.role === WorkspaceRole.manager && (
-            <div className="h-full flex justify-center items-center pl-10">
-              <Tooltip title="Manage users">
-                <Button
-                  type="primary"
-                  shape="circle"
-                  size="large"
-                  icon={<UserSwitchOutlined />}
-                  onClick={() => setShowUserListModal(true)}
-                >
-                  {workspace.waitingTenants && (
-                    <Badge
-                      count={workspace.waitingTenants}
-                      color="yellow"
-                      className="absolute -top-2.5 -right-2.5"
-                    />
-                  )}
-                </Button>
-              </Tooltip>
-            </div>
-          ),
-          right: workspace.role === WorkspaceRole.manager && (
-            <div className="h-full flex justify-center items-center pr-10">
-              <Tooltip title="Create template">
-                <Button
-                  onClick={() => {
-                    setShow(true);
-                  }}
-                  type="primary"
-                  shape="circle"
-                  size="large"
-                  icon={<PlusOutlined />}
+                <div className="h-full flex-grow flex flex-col justify-center items-center px-5">
+                  <p className="md:text-4xl text-2xl text-center mb-0">
+                    <b>{workspace.prettyName}</b>
+                  </p>
+                </div>
+
+                {workspace.role === WorkspaceRole.manager && (
+                  <div className="h-full flex-none flex justify-center items-center pr-10">
+                    <Tooltip title="Create template">
+                      <Button
+                        onClick={() => {
+                          setShow(true);
+                        }}
+                        type="primary"
+                        shape="circle"
+                        size="large"
+                        icon={<PlusOutlined />}
+                      />
+                    </Tooltip>
+                  </div>
+                )}
+              </div>
+
+              <div className="w-full flex-none p-2">
+                <QuotaDisplay
+                  consumedQuota={workspaceConsumedQuota}
+                  workspaceQuota={workspaceTotalQuota}
                 />
-              </Tooltip>
+              </div>
             </div>
           ),
         }}

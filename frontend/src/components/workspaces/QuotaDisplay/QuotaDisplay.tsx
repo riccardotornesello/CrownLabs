@@ -28,7 +28,7 @@ const QuotaDisplay: FC<IQuotaDisplayProps> = ({
 }) => {
   return (
     <div
-      className="quota-display-container h-30 md:h-10"
+      className="quota-display-container h-25 md:h-10 px-5"
       style={{ width: '100%', overflow: 'hidden' }}
     >
       <Row gutter={[16, 0]} style={{ height: '100%' }}>
