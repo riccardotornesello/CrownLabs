@@ -1,5 +1,11 @@
 ### NOTE: THIS FILE IS CURRENTLY NOT UP TO DATE WITH THE ACTUAL KUBEBUILDER 3 BOILERPLATE
 
+KEYCLOAK_URL ?= http://localhost:8090/
+KEYCLOAK_REALM ?= crownlabs
+KEYCLOAK_CLIENT_ID ?= crownlabs
+KEYCLOAK_CLIENT_SECRET ?= crownlabs
+KEYCLOAK_TARGET_CLIENT ?= crownlabs
+
 # Image URL to use all building/pushing image targets
 IMG ?= controller:latest
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.

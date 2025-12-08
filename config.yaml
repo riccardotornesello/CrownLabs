@@ -1,0 +1,218 @@
+# Default values for crownlabs.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+global:
+  version: "" # default set while packaging
+
+createClusterRoles: true
+
+frontend-app:
+  replicaCount: 1
+  image:
+    repository: crownlabs/frontend-app
+  ingress:
+    hostname: crownlabs.example.com
+    path: /
+  configuration:
+    backend:
+      graphql: https://graphql.example.com
+    oidc:
+      clientId: <client-id>
+      providerUrl: https://auth.example.com/auth/
+
+qlkube:
+  replicaCount: 1
+  image:
+    repository: crownlabs/qlkube
+  rbacResourcesName: crownlabs-qlkube
+  ingress:
+    hostname: qlkube.crownlabs.example.com
+  harborToken: {}
+  configuration:
+    exposedAPIs:
+      apis:
+        - crownlabs.polito.it
+    subscriptions:
+      apis:
+        - group: crownlabs.polito.it
+          resources:
+            - resource: instances
+              version: v1alpha2
+              mapping: itPolitoCrownlabsV1alpha2Instance
+              listMapping: itPolitoCrownlabsV1alpha2InstanceList
+            - resource: templates
+              version: v1alpha2
+              mapping: itPolitoCrownlabsV1alpha2Template
+    wrappers:
+      fileName: wrappers.js
+      resources:
+        - type: itPolitoCrownlabsV1alpha2Template
+          fieldWrapper: TemplateCrownlabsPolitoItTemplateRef
+          nameWrapper: templateWrapper
+          queryFieldsRequired:
+            - name
+            - namespace
+          parents:
+            - itPolitoCrownlabsV1alpha2Instance
+
+operator:
+  replicaCount: 1
+  image:
+    repository: crownlabs/operator
+  rbacResourcesName: crownlabs-operator
+  configurations:
+    targetLabel: crownlabs.polito.it/operator-selector=production
+    keycloak:
+      url: "https://auth.crownlabs.polito.it/"
+      realm: crownlabs
+      clientId: k8s
+      clientSecret: my-awesome-secret
+      rolesClientId: k8s
+    maxConcurrentReconciles: 1
+    tenantNamespaceKeepAlive: 168h
+  webhook:
+    deployment:
+      webhookBypassGroups: system:masters,system:serviceaccounts,kubernetes:admin
+      baseWorkspaces: utilities
+    enableMutating: true
+
+crownmail:
+  templates:
+    name: crownmail-templates
+    sourceFolder: mail-templates
+  configs:
+    name: crownmail-configs
+    sourceFolder: mail-configs
+    smtp:
+      server: override.smtp.example.com
+      port: "123"
+      identity: override-debug
+      username: override-debug@example.com
+      password: override-debugpassword
+      from: override-crownlabs@example.com
+
+instance-operator:
+  replicaCount: 1
+  image:
+    repository: crownlabs/instance-operator
+  rbacResourcesName: crownlabs-instance-operator
+  configurations:
+    generic:
+      whitelistLabels: crownlabs.polito.it/operator-selector=production
+      websiteBaseUrl: crownlabs.example.com
+      instancesAuthUrl: https://crownlabs.example.com/auth
+    containerEnvironmentOptions:
+      tag: ""
+      websockifyImage: crownlabs/websockify
+      vncImage: crownlabs/tigervnc
+      contentDownloaderImage: crownlabs/content-downloader
+      contentUploaderImage: crownlabs/content-uploader
+      instmetricsServerEndpoint: crownlabs-instmetrics.crownlabs-production:9090
+    containerVmSnapshots:
+      kanikoImage: gcr.io/kaniko-project/executor
+      exportImage: "crownlabs/img-exporter"
+      exportImageTag: ""
+    privateContainerRegistry:
+      url: registry.crownlabs.example.com
+      secretName: registry-credentials
+    maxConcurrentReconciles: 1
+    maxAutomationConcurrentReconciles: 1
+    monitoring:
+      prometheusURL: http://kube-prometheus-stack-prometheus.monitoring:9090
+      queryNginxAvailable: count(up{service="ingress-nginx-external-controller-metrics"})
+      queryBastionSSHAvailable: count(up{container="bastion-operator-tracker-sidecar"})
+      queryWebSSHAvailable: count(up{container="webssh"})
+      queryNginxData: nginx_ingress_controller_requests{exported_namespace="%s", exported_service="%s"}
+      queryBastionSSHData: bastion_ssh_connections{destination_ip="%s"}
+      queryWebSSHData: bastion_web_ssh_connections{destination_ip="%s"}
+      queryStep: 5m
+    mailTemplateDir: /etc/crownmail/templates
+    mailConfigDir: /etc/crownmail/configs
+    automation:
+      enableInstanceSubmission: true
+      enableInstanceTermination: true
+      enableInstanceInactiveTermination: true
+      enableInstanceExpiration: true
+      maxConcurrentTerminationReconciles: 1
+      maxConcurrentInactiveTerminationReconciles: 1
+      maxConcurrentExpirationReconciles: 1
+      maxConcurrentSubmissionReconciles: 1
+      terminationStatusCheckTimeout: "3s"
+      terminationStatusCheckInterval: "2m"
+      inactiveTerminationStatusCheckTimeout: "3s"
+      inactiveTerminationMaxNumberOfAlerts: 3
+      enableInactivityNotifications: true
+      enableExpirationNotifications: true
+      inactiveTerminationNotificationInterval: "24h"
+      expirationNotificationInterval: "24h"
+
+bastion-operator:
+  replicaCount: 1
+  image:
+    repositoryBastion: crownlabs/ssh-bastion
+    repositorySidecar: crownlabs/bastion-operator
+    repositoryTrackerSidecar: crownlabs/bastion-ssh-tracker
+  rbacResourcesName: crownlabs-bastion-operator
+  serviceAnnotations: {}
+  service:
+    type: LoadBalancer
+    port: 22
+    externalTrafficPolicy: Cluster
+  configurations:
+    sshTrackerInterface: any
+    sshTrackerPort: 22
+    sshTrackerSnaplen: 1600
+    sshTrackerMetricsAddr: ":8082"
+    
+  webssh:
+    ingress:
+      enabled: true
+      annotations:
+        nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
+      hostname: crownlabs.example.com
+      path: /webssh
+      pathType: Prefix
+
+image-list:
+  replicaCount: 1
+  image:
+    repository: crownlabs/crownlabs-image-list
+  rbacResourcesName: crownlabs-image-list
+  configurations:
+    registryUrl: http://docker-registry.docker-registry:5000
+    advRegistryName: registry.crownlabs.example.com
+    imageListName: crownlabs-virtual-machine-images
+    updateInterval: 60
+
+exam-agent:
+  replicaCount: 1
+  configurations:
+    allowedIPs: ""
+    targetNamespace: "crownlabs-exam"
+  exposition:
+    host: exams.crownlabs.polito.it
+    basePath: "/api"
+  image:
+    repository: crownlabs/exam-agent
+    pullPolicy: IfNotPresent
+
+instmetrics:
+  image:
+    repository: crownlabs/instmetrics
+  configurations:
+    runtimeEndpoint: unix:///run/dockershim.sock
+    containerRuntime: /run/dockershim.sock
+    dockerSocket: /var/run/docker.sock
+    connectionTimeout:  10s
+    updatePeriod: 4s
+    grpcPort: 9090
+
+policies:
+  ingressHostnamePattern: s302514.sandbox.crownlabs.polito.it
+  namespaceSelector:
+    matchExpressions:
+      - key: crownlabs.polito.it/type
+        operator: In
+        values:
+        - sandbox
