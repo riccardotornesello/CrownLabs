@@ -45,7 +45,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({
   const [showUserListModal, setShowUserListModal] = useState<boolean>(false);
 
   // Calculate resources used in each workspace
-  const { data: ownedInstances, refetch: refetchOwnedInstances } = useOwnedInstancesQuery({ variables: { tenantNamespace: "tenant-s302514" } });
+  const { data: ownedInstances, refetch: refetchOwnedInstances } = useOwnedInstancesQuery({ variables: { tenantNamespace } });
   const consumedQuota = useMemo(() => {
     if (!ownedInstances) return {}
 
@@ -83,7 +83,14 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({
       memory: convertToGB(workspace?.spec?.quota?.memory || 0),
       instances: workspace?.spec?.quota?.instances || 0,
     },
-  }), {}) || {}, [workspaceQuotas]);
+  }), {
+    // TODO: get from CR
+    "personal": {
+      cpu: 10,
+      memory: 10,
+      instances: 10,
+    }
+  }) || {}, [workspaceQuotas]);
 
   // Calculate quota for this specific workspace
   const workspaceTotalQuota = useMemo(() => totalQuota[workspace.name] || defaultQuota, [totalQuota, workspace.name]);
