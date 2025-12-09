@@ -1,0 +1,24 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: debug-pod-webhook
+webhooks:
+  - name: debug.my-webhook.local
+    # Importante: sideEffects None significa che non modifichiamo nulla,
+    # admissionReviewVersions indica quale versione dell'API usare.
+    sideEffects: None
+    admissionReviewVersions: ["v1"]
+    clientConfig:
+      # Qui diciamo a K8s di chiamare il tuo IP esterno
+      url: "https://192.168.11.110:8000/validate/instance"
+      # INCOLLA QUI SOTTO LA STRINGA BASE64 DEL PUNTO 2
+      caBundle: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURIekNDQWdlZ0F3SUJBZ0lVWXVwa1RKQTE4bm84VmMvTEloTWNYZ0Y1N0tRd0RRWUpLb1pJaHZjTkFRRUwKQlFBd0dURVhNQlVHQTFVRUF3d09NVGt5TGpFMk9DNHhNUzR4TVRBd0hoY05NalV4TWpBNE1qSTFOak0wV2hjTgpNall4TWpBNE1qSTFOak0wV2pBWk1SY3dGUVlEVlFRRERBNHhPVEl1TVRZNExqRXhMakV4TURDQ0FTSXdEUVlKCktvWklodmNOQVFFQkJRQURnZ0VQQURDQ0FRb0NnZ0VCQU1VWHFwWXpKeUMxRGVmeGJNa21kbEdGV0RSVjVQRFMKcG9hQ1c2eEtKSklKcUFsOXM3TDdrc01KUEVsY3lZb3ROMzdPUkZ2U0EzcFB0ZHRiMHBlekNtSjBRK1RKL3NNOApCSHA3c1RwMWtOM2tRbVc5bXcwRnQ1VXg5VzlDU3MrL0hQdkQrdHZMZXdjRlFYTjlLRWlFd0pzTTBhWlh4QW5NCnhjRllhVFlKTS95b1hTN3FFVUZmcER0Zm0zZVFEakdDcks5R05JUm45ZkxreW1yRzRtVWJuY2R0OGx4eW1jSysKQWlrREU0ZTd0VXhxQ0tKR3lIamFwTkhJWk53WThBMDBDNXRnZVF2bWtmSEVlem51UjlaYVdmOFJ5ZW1xcFNhSQplM3MwczQ4ai9RUlllaDZTY1MvNktQUEhkRjJ5ZDlvZXhQUkxoWkFodWltU3FHdnpRc2dNMERjQ0F3RUFBYU5mCk1GMHdDUVlEVlIwVEJBSXdBREFMQmdOVkhROEVCQU1DQmVBd0V3WURWUjBsQkF3d0NnWUlLd1lCQlFVSEF3RXcKRHdZRFZSMFJCQWd3Qm9jRXdLZ0xiakFkQmdOVkhRNEVGZ1FVY1JtN1duZDl1b3VMWnVjUjNwZWYya0NnR0lVdwpEUVlKS29aSWh2Y05BUUVMQlFBRGdnRUJBR1I1RXorZFRXak01WDdMMDQ2RC9rdWh0aWhvVCtSUnB2UW15dzdnCkxRZXoydEgvMTdjeEZ1cWNuUm5UdHdVazlZNGxTcE9MdHU3SWdCNjdYVnMySnFlWnRQMWowaUNpbFRveFp6WkwKVmdlbmpqSjlFRnluV1pBNEZTZUZycE5hbnhkSEZWbnRyMUV4YXBFQUhpY1JITHVpM3hzNk9mRmRVeWl4ZjUxcApENEZnQ0VJaDM1SktOemtreml4allVcnUxbE1jR21vd0ptODFsNnNKcHFLS3F3QmNUVFhLVjNmcUtYWVM5TTEzCnZrOUdHb1AxcWpDSzZDQlNvWGNJbThtR3hONVBRR3RJV21OVDk5QWdlSnNBV0JYTmExdmRwTUFzb3JoREVWcFIKRXAxRVcxeGh0MHVkNitXL0xFM2RVeXludGRmU0dTQlZjbGRpYzZiU3V5dEhjZ0U9Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K"
+    rules:
+      - operations: ["CREATE"]
+        apiGroups: ["crownlabs.polito.it"]
+        apiVersions: ["v1alpha2"]
+        resources: ["instances"]
+        scope: "Namespaced"
+    # Se il tuo server (netcat) è giù, ignoriamo l'errore per non bloccare il cluster
+    # failurePolicy: Ignore 
+    timeoutSeconds: 5

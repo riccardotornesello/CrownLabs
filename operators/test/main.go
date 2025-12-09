@@ -14,6 +14,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -75,6 +77,7 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	}
 
 	// For each workspace, calculate the used resources and enforce quotas
+	// TODO: reconcile single workspace?
 	for wsName, instances := range workspaceInstances {
 		usedCPU := resource.MustParse("0")
 		usedMem := resource.MustParse("0")
@@ -161,6 +164,92 @@ func (r *PodReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
+type InstanceValidator struct {
+	client  client.Client
+	decoder admission.Decoder
+}
+
+func (v *InstanceValidator) Handle(ctx context.Context, req webhook.AdmissionRequest) webhook.AdmissionResponse {
+	// Get the instance
+	var instance v1alpha2.Instance
+	err := v.decoder.DecodeRaw(req.Object, &instance)
+	if err != nil {
+		return webhook.Errored(400, err)
+	}
+
+	// Get the workspace name
+	instanceTemplate := &v1alpha2.Template{}
+	if err := v.client.Get(ctx, types.NamespacedName{Namespace: instance.Spec.Template.Namespace, Name: instance.Spec.Template.Name}, instanceTemplate); err != nil {
+		return webhook.Errored(500, err)
+	}
+	wsName := instanceTemplate.Spec.WorkspaceRef.Name
+	wsNamespace := instanceTemplate.Spec.WorkspaceRef.Namespace
+
+	// Find the other instances in the same workspace
+	instancesInWorkspace := &v1alpha2.InstanceList{}
+	if err := v.client.List(ctx, instancesInWorkspace, client.InNamespace(req.Namespace), client.MatchingLabels{"crownlabs.polito.it/workspace": wsName}); err != nil {
+		return webhook.Errored(500, err)
+	}
+
+	var totalInstances int64 = 1 // Count the instance being created
+	var totalCPU int64 = 0
+	var totalMemory resource.Quantity = resource.MustParse("0")
+
+	// Add the resources of the instance being created
+	for _, env := range instanceTemplate.Spec.EnvironmentList {
+		totalCPU += int64(env.Resources.CPU)
+		totalMemory.Add(env.Resources.Memory)
+	}
+
+	// Add the resources of the other instances
+	for _, inst := range instancesInWorkspace.Items {
+		if inst.Name == instance.Name {
+			continue
+		}
+
+		totalInstances++
+
+		instTemplate := &v1alpha2.Template{}
+		if err := v.client.Get(ctx, types.NamespacedName{Namespace: inst.Spec.Template.Namespace, Name: inst.Spec.Template.Name}, instTemplate); err != nil {
+			if errors.IsNotFound(err) {
+				klog.Info("Template not found for instance during validation", "instance", inst.Name)
+				continue
+			}
+			return webhook.Errored(500, err)
+		}
+
+		for _, env := range instTemplate.Spec.EnvironmentList {
+			totalCPU += int64(env.Resources.CPU)
+			totalMemory.Add(env.Resources.Memory)
+		}
+	}
+
+	// Get the workspace and check quotas
+	ws := &v1alpha1.Workspace{}
+	if err := v.client.Get(ctx, types.NamespacedName{Name: wsName, Namespace: wsNamespace}, ws); err != nil {
+		return webhook.Errored(500, err)
+	}
+
+	quota := ws.Spec.Quota
+
+	if quota.Instances > 0 && totalInstances > quota.Instances {
+		reason := fmt.Sprintf("Quota exceeded: Instances (%d > %d)", totalInstances, quota.Instances)
+		return webhook.Denied(reason)
+	}
+
+	if !quota.CPU.IsZero() && totalCPU > quota.CPU.Value() {
+		reason := fmt.Sprintf("Quota exceeded: CPU (%d > %d)", totalCPU, quota.CPU.Value())
+		return webhook.Denied(reason)
+	}
+
+	if !quota.Memory.IsZero() && totalMemory.Cmp(quota.Memory) > 0 {
+		reason := fmt.Sprintf("Quota exceeded: Memory (%s > %s)", totalMemory.String(), quota.Memory.String())
+		return webhook.Denied(reason)
+	}
+
+	return webhook.Allowed("Instance is valid")
+}
+
 func main() {
 	//----------- MANAGER
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -170,6 +259,14 @@ func main() {
 		},
 		HealthProbeBindAddress: ":8082",
 		Logger:                 klog.Background(),
+		WebhookServer: &webhook.DefaultServer{
+			Options: webhook.Options{
+				Port:     8000,
+				CertDir:  "/home/riccardo/CrownLabs/operators/test",
+				KeyName:  "server.key",
+				CertName: "server.crt",
+			},
+		},
 	})
 	if err != nil {
 		panic(err)
@@ -184,6 +281,10 @@ func main() {
 	if err = r.SetupWithManager(mgr); err != nil {
 		panic(err)
 	}
+
+	//---------- WEBHOOKS
+	wh := &webhook.Admission{Handler: &InstanceValidator{client: mgr.GetClient(), decoder: admission.NewDecoder(runtime.NewScheme())}}
+	mgr.GetWebhookServer().Register("/validate/instance", wh)
 
 	//---------- START
 	klog.Info("starting manager as controller manager")
