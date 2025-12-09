@@ -24,11 +24,10 @@ import {
 } from '../../../../generated-types';
 import { TenantContext } from '../../../../contexts/TenantContext';
 import type { Template } from '../../../../utils';
-import { cleanupLabels, WorkspaceRole } from '../../../../utils';
+import { cleanupLabels, convertToGB, WorkspaceRole } from '../../../../utils';
 import { ModalAlert } from '../../../common/ModalAlert';
 import { TemplatesTableRowSettings } from '../TemplatesTableRowSettings';
 import NodeSelectorIcon from '../../../common/NodeSelectorIcon/NodeSelectorIcon';
-import { parseMemoryToGB } from '../../QuotaDisplay/useQuotaCalculation';
 
 export interface ITemplatesTableRowProps {
   template: Template;
@@ -84,7 +83,7 @@ const canCreateInstance = (
   const templateCpu = template.resources?.cpu || 0;
   const availableCpu = availableQuota?.cpu || 0;
 
-  const templateMemory = parseMemoryToGB(template.resources?.memory || '0');
+  const templateMemory = convertToGB(template.resources?.memory || '0');
   const availableMemory = availableQuota?.memory || 0;
 
   const availableInstances =

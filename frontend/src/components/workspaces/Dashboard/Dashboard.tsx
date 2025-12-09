@@ -15,11 +15,6 @@ export interface IDashboardProps {
   tenantPersonalWorkspace?: {
     createPWs: boolean;
     isPWsCreated: boolean;
-    quota: {
-      cpu: string;
-      memory: string;
-      instances: number;
-    } | null;
   };
   workspaces: Array<Workspace>;
   candidatesButton?: {
