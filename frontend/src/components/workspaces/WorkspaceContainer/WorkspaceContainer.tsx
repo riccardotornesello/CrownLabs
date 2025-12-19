@@ -16,7 +16,7 @@ import Box from '../../common/Box';
 import ModalCreateTemplate from '../ModalCreateTemplate';
 import type { Template } from '../ModalCreateTemplate/ModalCreateTemplate';
 import { TemplatesTableLogic } from '../Templates/TemplatesTableLogic';
-import QuotaStatusBar from '../../common/QuotaStatusBar/QuotaStatusBar';
+import QuotaDisplay from '../QuotaDisplay';
 
 export interface IWorkspaceContainerProps {
   tenantNamespace: string;
@@ -192,7 +192,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
               </div>
 
               <div className="w-full flex-none p-2">
-                <QuotaStatusBar />
+                <QuotaDisplay workspaceName={workspace.name} />
               </div>
             </div>
           ),
