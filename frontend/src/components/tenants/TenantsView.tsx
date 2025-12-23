@@ -4,6 +4,7 @@ import TenantSearchForm from './TenantSearchForm';
 import { Button, Tooltip } from 'antd';
 import { LeftOutlined } from '@ant-design/icons';
 import { useState } from 'react';
+import TenantPersonalWorkspaceSettings from './TenantPersonalWorkspaceSettings';
 
 export default function TenantsView() {
   const [tenant, setTenant] = useState<TenantQuery | undefined>(undefined);
@@ -49,6 +50,8 @@ export default function TenantsView() {
         ),
       }}
     >
+      <TenantPersonalWorkspaceSettings tenant={tenant!} />
+
       {tenantLoaded ? (
         <pre>{JSON.stringify(tenant, null, 2)}</pre>
       ) : (
