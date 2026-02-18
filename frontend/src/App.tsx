@@ -122,7 +122,7 @@ function App() {
           content: (
             <SSHTerminal key="/instance/:namespace/:VMname/:environment/ssh" />
           ),
-          linkPosition: LinkPosition.Hidden,
+          linkPosition: LinkPosition.WebSSH,
         },
       ]}
     />
