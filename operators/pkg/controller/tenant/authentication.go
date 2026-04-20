@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -75,6 +76,18 @@ func (r *Reconciler) CheckKeycloakUserVerified(
 			Name:    *user.ID,
 			Created: true,
 		}
+	}
+
+	if user.CreatedTimestamp != nil {
+		registrationDate := metav1.NewTime(time.UnixMilli(*user.CreatedTimestamp).UTC())
+		if tenant.Status.Keycloak.RegistrationDate == nil ||
+			!tenant.Status.Keycloak.RegistrationDate.Equal(&registrationDate) {
+			log.Info("Registration date updated in Keycloak", "registrationDate", registrationDate)
+			tenant.Status.Keycloak.RegistrationDate = &registrationDate
+		}
+	} else if tenant.Status.Keycloak.RegistrationDate != nil {
+		log.Info("Registration date not available in Keycloak, resetting status field")
+		tenant.Status.Keycloak.RegistrationDate = nil
 	}
 
 	if *user.EmailVerified != tenant.Status.Keycloak.UserConfirmed {

@@ -26,6 +26,7 @@ import (
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
@@ -44,6 +45,8 @@ var _ = Describe("Authentication Unit", func() {
 	})
 
 	Describe("CheckKeycloakUserVerified", func() {
+		const createdTimestamp = int64(1710000000000)
+
 		Context("When Keycloak actor is not initialized", func() {
 			It("should return true and no error", func() {
 				keycloakActor.EXPECT().IsInitialized().Return(false)
@@ -63,6 +66,10 @@ var _ = Describe("Authentication Unit", func() {
 				keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(&gocloak.User{
 					ID:            gocloak.StringP("user-id"),
 					EmailVerified: gocloak.BoolP(true),
+					CreatedTimestamp: func() *int64 {
+						ts := createdTimestamp
+						return &ts
+					}(),
 				}, nil)
 
 				verified, err := tenantReconciler.CheckKeycloakUserVerified(ctx, log, tnResource)
@@ -73,6 +80,7 @@ var _ = Describe("Authentication Unit", func() {
 					Created: true,
 				}))
 				Expect(tnResource.Status.Keycloak.UserConfirmed).To(BeTrue())
+				Expect(tnResource.Status.Keycloak.RegistrationDate).To(Equal(timePtr(metav1.NewTime(time.UnixMilli(createdTimestamp)))))
 			})
 
 			It("should return false and no error if user is created but email is not confirmed", func() {
@@ -369,6 +377,10 @@ var _ = Describe("Authentication Reconciler", func() {
 				keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(&gocloak.User{
 					ID:            gocloak.StringP("test-user-id"),
 					EmailVerified: gocloak.BoolP(true),
+					CreatedTimestamp: func() *int64 {
+						ts := createdTimestamp
+						return &ts
+					}(),
 				}, nil)
 			})
 
@@ -380,6 +392,7 @@ var _ = Describe("Authentication Reconciler", func() {
 					Created: true,
 				}))
 				Expect(tn.Status.Keycloak.UserConfirmed).To(BeTrue())
+				Expect(tn.Status.Keycloak.RegistrationDate).To(Equal(timePtr(metav1.NewTime(time.UnixMilli(createdTimestamp)))))
 			})
 
 			It("Should create the related resources", func() {

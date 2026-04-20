@@ -173,6 +173,10 @@ spec:
               keycloak:
                 description: The status of Keycloak authentication flow
                 properties:
+                  registrationDate:
+                    description: The user registration timestamp in Keycloak.
+                    format: date-time
+                    type: string
                   userConfirmed:
                     description: |-
                       Whether the Tenant has confirmed his/her email address.
