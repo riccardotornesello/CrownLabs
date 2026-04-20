@@ -26,13 +26,14 @@ import (
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/mock"
 )
+
+const createdTimestamp = int64(1710000000000)
 
 var _ = Describe("Authentication Unit", func() {
 	BeforeEach(func() {
@@ -45,8 +46,6 @@ var _ = Describe("Authentication Unit", func() {
 	})
 
 	Describe("CheckKeycloakUserVerified", func() {
-		const createdTimestamp = int64(1710000000000)
-
 		Context("When Keycloak actor is not initialized", func() {
 			It("should return true and no error", func() {
 				keycloakActor.EXPECT().IsInitialized().Return(false)
@@ -80,7 +79,8 @@ var _ = Describe("Authentication Unit", func() {
 					Created: true,
 				}))
 				Expect(tnResource.Status.Keycloak.UserConfirmed).To(BeTrue())
-				Expect(tnResource.Status.Keycloak.RegistrationDate).To(Equal(timePtr(metav1.NewTime(time.UnixMilli(createdTimestamp)))))
+				Expect(tnResource.Status.Keycloak.RegistrationDate).NotTo(BeNil())
+				Expect(tnResource.Status.Keycloak.RegistrationDate.Time).To(BeTemporally("==", time.UnixMilli(createdTimestamp).UTC()))
 			})
 
 			It("should return false and no error if user is created but email is not confirmed", func() {
@@ -392,7 +392,8 @@ var _ = Describe("Authentication Reconciler", func() {
 					Created: true,
 				}))
 				Expect(tn.Status.Keycloak.UserConfirmed).To(BeTrue())
-				Expect(tn.Status.Keycloak.RegistrationDate).To(Equal(timePtr(metav1.NewTime(time.UnixMilli(createdTimestamp)))))
+				Expect(tn.Status.Keycloak.RegistrationDate).NotTo(BeNil())
+				Expect(tn.Status.Keycloak.RegistrationDate.Time).To(BeTemporally("==", time.UnixMilli(createdTimestamp).UTC()))
 			})
 
 			It("Should create the related resources", func() {
